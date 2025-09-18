@@ -7,6 +7,7 @@ import { getContentType, getHeader, isJSONString } from './misc';
 const xpath = require('xpath');
 const { DOMParser } = require('xmldom');
 const { JSONPath } = require('jsonpath-plus');
+const JSONbig = require('json-bigint')({ useNativeBigInt: true });
 
 const requestVariablePathRegex: RegExp = /^(\w+)(?:\.(request|response)(?:\.(body|headers)(?:\.(.*))?)?)?$/;
 
@@ -72,7 +73,7 @@ export class RequestVariableCacheValueProcessor {
             const contentTypeHeader = getContentType(headers);
             if (MimeUtility.isJSON(contentTypeHeader) ||
                 (forceJson || MimeUtility.isJavaScript(contentTypeHeader)) && isJSONString(body as string)) {
-                const parsedBody = JSON.parse(body as string);
+                const parsedBody = JSONbig.parse(body as string);
 
                 return this.resolveJsonHttpBody(parsedBody, nameOrPath);
             } else if (forceXml || MimeUtility.isXml(contentTypeHeader)) {
@@ -99,7 +100,7 @@ export class RequestVariableCacheValueProcessor {
     private static resolveJsonHttpBody(body: any, path: string): ResolveResult {
         try {
             const result = JSONPath({ path, json: body });
-            const value = typeof result[0] === 'string' ? result[0] : JSON.stringify(result[0]);
+            const value = typeof result[0] === 'string' ? result[0] : JSONbig.stringify(result[0]);
             if (!value) {
                 return { state: ResolveState.Warning, message: ResolveWarningMessage.IncorrectJSONPath };
             } else {
